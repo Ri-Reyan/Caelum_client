@@ -24,8 +24,8 @@ const LoginPage = () => {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+    email: "rifat@example.com",
+    password: "rifat12345",
   });
 
   const [role, setRole] = useState<Role>("customer");

@@ -1,12 +1,12 @@
 "use client";
 
+import LogoutButton from "@/app/(publicGroup)/_actions/handleLogout";
 import AxiosInstance from "@/utils/axiosInstance";
 import {
   BarChart3,
   ChevronRight,
   Clock3,
   LayoutDashboard,
-  LogOut,
   Menu,
   ShieldCheck,
   ShoppingBag,
@@ -151,16 +151,8 @@ export default function AdminDashboard() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Administrator</p>
-              <p className="truncate text-xs text-stone-500">
-                admin@caelum.com
-              </p>
             </div>
-            <button
-              type="button"
-              className="rounded-lg p-2 text-stone-500 transition hover:bg-white/10 hover:text-white"
-            >
-              <LogOut size={17} />
-            </button>
+            <LogoutButton />
           </div>
         </div>
       </aside>
