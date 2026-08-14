@@ -1,4 +1,3 @@
-import { Menu, Search } from "lucide-react";
 import icon from "../../icon.png";
 import Image from "next/image";
 
