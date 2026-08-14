@@ -542,7 +542,7 @@ const WatchDetailModal = ({
                 }}
                 className="w-full py-3.5 rounded-xl bg-white text-stone-950 font-bold text-sm hover:bg-stone-200 transition shadow-lg active:scale-98 cursor-pointer"
               >
-                Buy Now
+                Pre order
               </button>
             </div>
           </div>
