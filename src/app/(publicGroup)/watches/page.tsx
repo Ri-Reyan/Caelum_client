@@ -413,6 +413,7 @@ const WatchDetailModal = ({
 
   useEffect(() => {
     if (watch?.pictures && watch.pictures.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveImage(watch.pictures[0]);
     }
   }, [watch]);
