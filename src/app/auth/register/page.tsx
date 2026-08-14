@@ -57,7 +57,7 @@ const RegisterPage = () => {
       );
 
       if (response.data.success) {
-        router.push(role === "admin" ? "/admin/dashboard" : "/dashboard");
+        router.push(role === "admin" ? "/admin/dashboard" : "/");
 
         router.refresh();
       }

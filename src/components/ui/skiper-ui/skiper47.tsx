@@ -151,13 +151,17 @@ const Carousel_001 = ({
             className="h-80! w-full border hover:transform hover:-translate-y-2 hover:rounded-md"
           >
             <Link href={"/watches"}>
-              <Image
-                className="h-full w-full object-cover rounded-md hover:rounded-md"
-                src={image.src}
-                alt={image.alt}
-                width={500}
-                height={500}
-              />
+              {image.src ? (
+                <Image
+                  className="h-full w-full object-cover rounded-md hover:rounded-md"
+                  src={image.src}
+                  alt={image.alt}
+                  width={500}
+                  height={500}
+                />
+              ) : (
+                <div className="h-full w-full bg-gray-200 rounded-md" />
+              )}
             </Link>
           </SwiperSlide>
         ))}

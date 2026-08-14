@@ -96,15 +96,19 @@ function AnimationCard({ prefix, title, frameCount }: AnimationCardProps) {
               "
             >
               <div className="relative aspect-video">
-                <Image
-                  src={frames[frameIndex]}
-                  alt={`${title} animation`}
-                  fill
-                  priority
-                  className="object-cover"
-                  draggable={false}
-                  unoptimized
-                />
+                {frames[frameIndex] ? (
+                  <Image
+                    src={frames[frameIndex]}
+                    alt={`${title} animation`}
+                    fill
+                    priority
+                    className="object-cover"
+                    draggable={false}
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full bg-stone-200" />
+                )}
               </div>
             </div>
           </div>

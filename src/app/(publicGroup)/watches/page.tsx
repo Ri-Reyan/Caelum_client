@@ -3,6 +3,7 @@
 import { Search, Watch, X, Sparkles } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AxiosInstance from "@/utils/axiosInstance";
 
 // ========================================================================
@@ -22,24 +23,35 @@ interface WatchItem {
   createdAt?: string;
 }
 
+// ========================================================================
+// FIXED GOOGLE DRIVE IMAGE NORMALIZER (Uses Google User Content CDN)
+// ========================================================================
 const normalizeGoogleDriveImageUrl = (value: string) => {
-  if (!value) return value;
+  if (!value) return "";
 
   const trimmed = value.trim();
+
+  // Extract Google Drive File ID using Regex
   const directMatch = trimmed.match(
     /drive\.google\.com\/uc\?export=view&id=([a-zA-Z0-9_-]+)/i,
   );
   const fileMatch = trimmed.match(
     /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i,
   );
+  const openMatch = trimmed.match(
+    /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/i,
+  );
   const idMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/i);
 
-  const id = directMatch?.[1] || fileMatch?.[1] || idMatch?.[1];
+  const fileId =
+    directMatch?.[1] || fileMatch?.[1] || openMatch?.[1] || idMatch?.[1];
 
-  if (id) {
-    return `https://drive.google.com/uc?export=view&id=${id}`;
+  // If a valid Google Drive ID is found, return the LH3 CDN link
+  if (fileId) {
+    return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
 
+  // Fallback cleanup for array string formatting
   return trimmed
     .replace(/^\[+|\]+$/g, "")
     .replace(/^['"]+|['"]+$/g, "")
@@ -75,6 +87,15 @@ const normalizeStringArray = (value: unknown): string[] => {
 
   if (parts.length > 0) {
     return parts;
+  }
+
+  const whitespaceParts = normalizedText
+    .split(/\s+/)
+    .map((part) => part.trim().replace(/^['"]+|['"]+$/g, ""))
+    .filter(Boolean);
+
+  if (whitespaceParts.length > 1) {
+    return whitespaceParts;
   }
 
   return [normalizedText.replace(/^['"]+|['"]+$/g, "")];
@@ -131,7 +152,6 @@ export default function PublicWatchesPage() {
   const [watches, setWatches] = useState<WatchItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Selected Watch ID for Single Product API Fetch
   const [selectedWatchId, setSelectedWatchId] = useState<string | null>(null);
   const [selectedWatch, setSelectedWatch] = useState<WatchItem | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
@@ -280,7 +300,7 @@ export default function PublicWatchesPage() {
         )}
       </div>
 
-      {/* DETAIL MODAL (Triggered by /api/watch/:id) */}
+      {/* DETAIL MODAL */}
       {(selectedWatchId || selectedWatch) && (
         <WatchDetailModal
           loading={modalLoading}
@@ -293,7 +313,7 @@ export default function PublicWatchesPage() {
 }
 
 // ========================================================================
-// WATCH CARD COMPONENT (Matching Screenshot Curvatures & Aesthetics)
+// WATCH CARD COMPONENT
 // ========================================================================
 
 interface WatchCardProps {
@@ -302,26 +322,27 @@ interface WatchCardProps {
 }
 
 const WatchCard = ({ watch, onOpenDetails }: WatchCardProps) => {
-  const imageUrl = normalizeGoogleDriveImageUrl(
-    watch.pictures && watch.pictures.length > 0 ? watch.pictures[0] : "",
-  );
-  {
-    console.log(watch);
-  }
-  const isGoogleDriveImage = imageUrl.includes("drive.google.com");
+  const imageUrl =
+    watch.pictures && watch.pictures.length > 0 ? watch.pictures[0] : "";
 
   return (
     <div className="group relative bg-[#18181b] border border-stone-800/90 rounded-[2rem] p-4 flex flex-col justify-between shadow-2xl transition duration-300 hover:border-stone-700 hover:-translate-y-1">
       {/* IMAGE CONTAINER WITH CURVED BADGES */}
       <div className="relative w-full h-60 rounded-[1.5rem] overflow-hidden bg-stone-900">
-        <Image
-          src={imageUrl}
-          alt={watch.name}
-          width={1200}
-          height={900}
-          unoptimized={isGoogleDriveImage}
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500 ease-out"
-        />
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={watch.name}
+            width={1200}
+            height={900}
+            unoptimized={true}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500 ease-out"
+          />
+        ) : (
+          <div className="w-full h-full bg-stone-800 flex items-center justify-center text-stone-600 text-xs">
+            No Image Available
+          </div>
+        )}
 
         {/* Curved Top-Right Badge */}
         <div className="absolute top-0 right-0 bg-white text-stone-950 font-bold text-[11px] px-4 py-1.5 rounded-bl-2xl shadow-md tracking-wider">
@@ -363,7 +384,7 @@ const WatchCard = ({ watch, onOpenDetails }: WatchCardProps) => {
 
           <button
             onClick={onOpenDetails}
-            className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-950 hover:bg-white px-5 py-2.5 rounded-full font-bold text-xs transition duration-200 shadow-md active:scale-95"
+            className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-950 hover:bg-white px-5 py-2.5 rounded-full font-bold text-xs transition duration-200 shadow-md active:scale-95 cursor-pointer"
           >
             Read More
           </button>
@@ -376,7 +397,6 @@ const WatchCard = ({ watch, onOpenDetails }: WatchCardProps) => {
 // ========================================================================
 // WATCH DETAIL MODAL COMPONENT
 // ========================================================================
-
 interface WatchDetailModalProps {
   loading: boolean;
   watch: WatchItem | null;
@@ -388,12 +408,12 @@ const WatchDetailModal = ({
   watch,
   onClose,
 }: WatchDetailModalProps) => {
+  const router = useRouter();
   const [activeImage, setActiveImage] = useState<string>("");
 
   useEffect(() => {
     if (watch?.pictures && watch.pictures.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveImage(normalizeGoogleDriveImageUrl(watch.pictures[0]));
+      setActiveImage(watch.pictures[0]);
     }
   }, [watch]);
 
@@ -403,7 +423,7 @@ const WatchDetailModal = ({
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 text-stone-400 hover:text-white bg-stone-900 rounded-full border border-stone-800 transition z-10"
+          className="absolute top-6 right-6 p-2 text-stone-400 hover:text-white bg-stone-900 rounded-full border border-stone-800 transition z-10 cursor-pointer"
         >
           <X size={20} />
         </button>
@@ -423,17 +443,20 @@ const WatchDetailModal = ({
             {/* LEFT: IMAGES */}
             <div className="space-y-4">
               <div className="w-full h-72 rounded-2xl overflow-hidden bg-stone-900 border border-stone-800">
-                <Image
-                  src={normalizeGoogleDriveImageUrl(
-                    activeImage ||
-                      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1000",
-                  )}
-                  alt={watch.name}
-                  width={1200}
-                  height={900}
-                  unoptimized={(activeImage || "").includes("drive.google.com")}
-                  className="w-full h-full object-cover"
-                />
+                {activeImage ? (
+                  <Image
+                    src={activeImage}
+                    alt={watch.name}
+                    width={1200}
+                    height={900}
+                    unoptimized={true}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-stone-600 text-xs">
+                    No Image Available
+                  </div>
+                )}
               </div>
 
               {/* GALLERY THUMBNAILS */}
@@ -443,18 +466,18 @@ const WatchDetailModal = ({
                     <button
                       key={idx}
                       onClick={() => setActiveImage(img)}
-                      className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition ${
+                      className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition cursor-pointer ${
                         activeImage === img
                           ? "border-white"
                           : "border-stone-800 opacity-60"
                       }`}
                     >
                       <Image
-                        src={normalizeGoogleDriveImageUrl(img)}
+                        src={img}
                         alt=""
                         width={200}
                         height={200}
-                        unoptimized={img.includes("drive.google.com")}
+                        unoptimized={true}
                         className="w-full h-full object-cover"
                       />
                     </button>
@@ -510,8 +533,13 @@ const WatchDetailModal = ({
               )}
 
               <button
-                onClick={() => alert("Redirecting to order/checkout...")}
-                className="w-full py-3.5 rounded-xl bg-white text-stone-950 font-bold text-sm hover:bg-stone-200 transition shadow-lg active:scale-98"
+                onClick={() => {
+                  if (watch?.id) {
+                    onClose();
+                    router.push(`/customer/order/${watch.id}`);
+                  }
+                }}
+                className="w-full py-3.5 rounded-xl bg-white text-stone-950 font-bold text-sm hover:bg-stone-200 transition shadow-lg active:scale-98 cursor-pointer"
               >
                 Buy Now
               </button>
